@@ -736,24 +736,27 @@ function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredB
         </div>
       </div>
 
-      <!-- Action Button: Opens Website Staff Page -->
-      <div style="margin: 24px 0 16px 0; text-align: left;">
+      <!-- Action Button: Opens Staff Portal / Login Page to View Tasks -->
+      <div style="margin: 24px 0 14px 0; text-align: left;">
         <a href="${staffPortalUrl}" 
-           style="display: inline-block; background-color: #065F46; color: #FFFFFF; font-size: 14px; font-weight: 700; padding: 13px 26px; border-radius: 9px; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); letter-spacing: 0.02em;">
-          👉 View Deliverable on Staff Portal ↗
+           style="display: inline-block; background-color: #065F46; color: #FFFFFF; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.12); letter-spacing: 0.01em;">
+          👉 Open Staff Portal to View My Tasks ↗
         </a>
       </div>
       <p style="margin: 0 0 16px 0; font-size: 12px; color: #4B5563; line-height: 1.5;">
-        Clicking above takes you directly to your personalized tasks dashboard on the website (filtered to your assigned tasks only).
+        Opens your personal deliverables dashboard on the website to log in, review specifications, and check off assigned tasks.
       </p>
 
-      <!-- Footer -->
-      <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #9CA3AF; line-height: 1.5;">
-        <p style="margin: 0;">
-          Direct Portal URL: <a href="${staffPortalUrl}" style="color: #065F46; text-decoration: underline;">${staffPortalUrl}</a>
+      <!-- Footer with Direct Web Links -->
+      <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #6B7280; line-height: 1.6;">
+        <p style="margin: 0 0 4px 0;">
+          <strong>Direct Deliverable Link:</strong> <a href="${staffPortalUrl}" style="color: #065F46; text-decoration: underline;">${staffPortalUrl}</a>
         </p>
-        <p style="margin: 4px 0 0 0;">
-          Apex Construction Systems • 2026 Technical Operations Engine
+        <p style="margin: 0 0 4px 0;">
+          <strong>Staff Login Page:</strong> <a href="${appBaseUrl}/staff" style="color: #065F46; text-decoration: underline;">${appBaseUrl}/staff</a>
+        </p>
+        <p style="margin: 8px 0 0 0; color: #9CA3AF;">
+          Apex Architecture & Engineering Studio • 2026 Technical Operations Engine
         </p>
       </div>
 
@@ -776,18 +779,22 @@ function clearSentNotificationHistory() {
 function sendTestAssignmentNotification() {
   var email = Session.getActiveUser().getEmail();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var props = PropertiesService.getScriptProperties();
+  var appBaseUrl = props.getProperty('APP_BASE_URL') || 'https://apex-build-task.vercel.app';
+  var staffPortalUrl = String(appBaseUrl).trim().replace(/\/+$/, '') + '/staff?email=' + encodeURIComponent(email);
 
   var result = sendDirectEmail(
     email,
-    "📐 [Test Notice] Google Sheet Automatic Notification Test",
-    `
-      <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #10B981; border-radius: 12px;">
-        <h2 style="color: #065F46;">✅ Automatic Email Notifications are Fully Working!</h2>
-        <p>This test email confirms that your Google Sheet backend can automatically notify architects and engineers when tasks are assigned.</p>
-        <p><strong>Spreadsheet:</strong> <a href="${ss.getUrl()}">${ss.getName()}</a></p>
-        <p>Timestamp: ${new Date().toLocaleString()}</p>
-      </div>
-    `
+    "📐 [Test Notice] Staff Deliverable Portal Notification Test",
+    buildHtmlEmail(
+      "Office Staff Member",
+      "Revit Architectural LOD 350 Coordination",
+      "Automatic test notification verifying deliverable dispatch. Click below to open your dedicated staff portal.",
+      "SYSTEM_VERIFICATION",
+      "Operations Admin",
+      staffPortalUrl,
+      ss.getUrl()
+    )
   );
 
   if (result.success) {
