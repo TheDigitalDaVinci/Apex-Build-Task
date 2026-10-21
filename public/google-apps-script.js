@@ -478,7 +478,8 @@ function doPost(e) {
           "SYSTEM_VERIFICATION",
           "Operations Admin",
           staffPortalUrl,
-          ss.getUrl()
+          ss.getUrl(),
+          appBaseUrl
         )
       );
       return ContentService.createTextOutput(JSON.stringify({
@@ -638,7 +639,7 @@ function dispatchPendingNotifications(notificationsRows, spreadsheet, explicitAp
 
     if (isRealEmail && !alreadySent) {
       var subject = "📐 [A&E Deliverable Notice] " + taskTitle;
-      var htmlBody = buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, staffPortalUrl, sheetUrl);
+      var htmlBody = buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, staffPortalUrl, sheetUrl, appBaseUrl);
 
       var sendResult = sendDirectEmail(recipientEmail, subject, htmlBody);
       if (sendResult.success) {
@@ -688,7 +689,10 @@ function sendDirectEmail(toEmail, subject, htmlBody) {
 /**
  * Builds the official branded HTML email for architects and engineers
  */
-function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, staffPortalUrl, sheetUrl) {
+function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, staffPortalUrl, sheetUrl, appBaseUrl) {
+  var baseUrl = appBaseUrl || (staffPortalUrl ? staffPortalUrl.split('/staff')[0] : 'https://apex-build-task.vercel.app');
+  baseUrl = String(baseUrl).trim().replace(/\/+$/, '');
+
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #E5E7EB; border-radius: 16px; background-color: #FFFFFF;">
       
@@ -753,7 +757,7 @@ function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredB
           <strong>Direct Deliverable Link:</strong> <a href="${staffPortalUrl}" style="color: #065F46; text-decoration: underline;">${staffPortalUrl}</a>
         </p>
         <p style="margin: 0 0 4px 0;">
-          <strong>Staff Login Page:</strong> <a href="${appBaseUrl}/staff" style="color: #065F46; text-decoration: underline;">${appBaseUrl}/staff</a>
+          <strong>Staff Login Page:</strong> <a href="${baseUrl}/staff" style="color: #065F46; text-decoration: underline;">${baseUrl}/staff</a>
         </p>
         <p style="margin: 8px 0 0 0; color: #9CA3AF;">
           Apex Architecture & Engineering Studio • 2026 Technical Operations Engine
@@ -777,7 +781,7 @@ function clearSentNotificationHistory() {
  * RUN THIS ONCE IN APPS SCRIPT EDITOR TO GRANT EMAIL PERMISSIONS!
  */
 function sendTestAssignmentNotification() {
-  var email = Session.getActiveUser().getEmail();
+  var email = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var props = PropertiesService.getScriptProperties();
   var appBaseUrl = props.getProperty('APP_BASE_URL') || 'https://apex-build-task.vercel.app';
@@ -793,7 +797,8 @@ function sendTestAssignmentNotification() {
       "SYSTEM_VERIFICATION",
       "Operations Admin",
       staffPortalUrl,
-      ss.getUrl()
+      ss.getUrl(),
+      appBaseUrl
     )
   );
 
