@@ -386,6 +386,7 @@ const INITIAL_GOOGLE_SHEETS_CONFIG: GoogleSheetsConfig = {
   spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/1Pjvf1yxKPxwRkK5T_1407xn3sY9U9Owo7QnxvlgyMok/edit',
   sheetTitle: 'Task Handler - Operations Hub',
   webAppUrl: 'https://script.google.com/macros/s/AKfycbxrR8Uq4wqUZb4VEiIk8Sw9GHBvwWH6cUYWOmH1P9vee_X--NXojnmq8dXypcHjrhQl/exec',
+  appUrl: 'https://apex-build-task.vercel.app',
   lastSyncedAt: new Date().toISOString(),
   syncMode: 'local_mirror',
   autoSyncOnChange: true,

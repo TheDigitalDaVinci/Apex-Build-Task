@@ -325,8 +325,9 @@ export async function syncLiveGoogleSheet(db: DatabaseSchema): Promise<{ success
   // 1. If connected via Google Apps Script Web App URL:
   if (config.isConnected && config.webAppUrl) {
     try {
-      const defaultAppUrl = process.env.NEXT_PUBLIC_APP_URL 
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://apex-build-task.vercel.app'));
+      const defaultAppUrl = config.appUrl 
+        || process.env.NEXT_PUBLIC_APP_URL 
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://apex-build-task.vercel.app');
 
       const response = await fetch(config.webAppUrl, {
         method: 'POST',

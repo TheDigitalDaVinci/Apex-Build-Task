@@ -95,6 +95,7 @@ export interface GoogleSheetsConfig {
   spreadsheetUrl: string;
   sheetTitle: string;
   webAppUrl?: string; // Google Apps Script Web App Deployment URL (for direct push)
+  appUrl?: string; // Production Website URL for email notification buttons
   lastSyncedAt?: string;
   syncMode: 'cloud_api' | 'local_mirror' | 'service_account';
   apiKey?: string;

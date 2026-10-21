@@ -294,7 +294,8 @@
     "syncMode": "local_mirror",
     "autoSyncOnChange": true,
     "totalSyncedRows": 98,
-    "webAppUrl": "https://script.google.com/macros/s/AKfycbxrR8Uq4wqUZb4VEiIk8Sw9GHBvwWH6cUYWOmH1P9vee_X--NXojnmq8dXypcHjrhQl/exec"
+    "webAppUrl": "https://script.google.com/macros/s/AKfycbxrR8Uq4wqUZb4VEiIk8Sw9GHBvwWH6cUYWOmH1P9vee_X--NXojnmq8dXypcHjrhQl/exec",
+    "appUrl": "https://apex-build-task.vercel.app"
   },
   "sheetNotifications": [
     {
