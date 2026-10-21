@@ -465,6 +465,9 @@ function doPost(e) {
 
     // Direct test email request
     if (data.action === 'test_email' && data.to) {
+      var props = PropertiesService.getScriptProperties();
+      var appBaseUrl = data.appBaseUrl || props.getProperty('APP_BASE_URL') || 'https://apex-build-task.vercel.app';
+      var staffPortalUrl = String(appBaseUrl).trim().replace(/\/+$/, '') + '/staff?email=' + encodeURIComponent(data.to);
       var testResult = sendDirectEmail(
         data.to,
         "📐 [Test Notice] Google Sheet Automatic Notification Test",
@@ -474,6 +477,7 @@ function doPost(e) {
           "Automatic test notification initiated from the Operations frontend.",
           "SYSTEM_VERIFICATION",
           "Operations Admin",
+          staffPortalUrl,
           ss.getUrl()
         )
       );
@@ -529,7 +533,7 @@ function doPost(e) {
         // ===================================================================
         // 🔔 AUTOMATIC NOTIFICATION DISPATCH TO ASSIGNED PERSON
         // ===================================================================
-        var dispatchResult = dispatchPendingNotifications(data.sheets.notifications, ss);
+        var dispatchResult = dispatchPendingNotifications(data.sheets.notifications, ss, data.appBaseUrl);
         emailsSent = dispatchResult.emailsSent;
         if (dispatchResult.errors && dispatchResult.errors.length > 0) {
           errors = errors.concat(dispatchResult.errors);
@@ -578,7 +582,7 @@ function doPost(e) {
  * Dispatches an automated email to the assigned architect or engineer
  * using Google's native MailApp service (with GmailApp fallback).
  */
-function dispatchPendingNotifications(notificationsRows, spreadsheet) {
+function dispatchPendingNotifications(notificationsRows, spreadsheet, explicitAppUrl) {
   // Row 0 is headers: [Notification ID, Timestamp, Recipient Name, Recipient Email, Event Type, Task ID, Task Title, Summary, Triggered By, Status]
   var result = {
     emailsSent: [],
@@ -590,6 +594,15 @@ function dispatchPendingNotifications(notificationsRows, spreadsheet) {
   }
 
   var props = PropertiesService.getScriptProperties();
+  if (explicitAppUrl) {
+    try {
+      props.setProperty('APP_BASE_URL', explicitAppUrl);
+    } catch (saveErr) {}
+  }
+
+  var appBaseUrl = explicitAppUrl || props.getProperty('APP_BASE_URL') || 'https://apex-build-task.vercel.app';
+  appBaseUrl = String(appBaseUrl).trim().replace(/\/+$/, '');
+
   var sentMap = {};
   try {
     var sentNotifsStr = props.getProperty('SENT_NOTIFICATIONS') || '{}';
@@ -608,9 +621,16 @@ function dispatchPendingNotifications(notificationsRows, spreadsheet) {
     var recipientName = String(row[2] || 'Team Member');
     var recipientEmail = String(row[3] || '').trim();
     var eventType = String(row[4] || 'TASK_ASSIGNED');
+    var taskId = String(row[5] || '').trim();
     var taskTitle = String(row[6] || 'Deliverable Task');
     var summary = String(row[7] || '');
     var triggeredBy = String(row[8] || 'Operations Lead');
+
+    // Build the direct staff portal URL for this specific user and task
+    var staffPortalUrl = appBaseUrl + '/staff?email=' + encodeURIComponent(recipientEmail);
+    if (taskId) {
+      staffPortalUrl += '&taskId=' + encodeURIComponent(taskId);
+    }
 
     // Skip if empty, demo domain, or already sent
     var isRealEmail = recipientEmail && recipientEmail.indexOf('@') !== -1 && !recipientEmail.endsWith('.demo');
@@ -618,7 +638,7 @@ function dispatchPendingNotifications(notificationsRows, spreadsheet) {
 
     if (isRealEmail && !alreadySent) {
       var subject = "📐 [A&E Deliverable Notice] " + taskTitle;
-      var htmlBody = buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, sheetUrl);
+      var htmlBody = buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, staffPortalUrl, sheetUrl);
 
       var sendResult = sendDirectEmail(recipientEmail, subject, htmlBody);
       if (sendResult.success) {
@@ -668,14 +688,14 @@ function sendDirectEmail(toEmail, subject, htmlBody) {
 /**
  * Builds the official branded HTML email for architects and engineers
  */
-function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, sheetUrl) {
+function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredBy, staffPortalUrl, sheetUrl) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #E5E7EB; border-radius: 16px; background-color: #FFFFFF;">
       
       <!-- Header -->
       <div style="border-bottom: 2px solid #065F46; padding-bottom: 16px; margin-bottom: 20px;">
         <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #065F46; background-color: #ECFDF5; padding: 4px 10px; border-radius: 9999px;">
-          ● Google Sheet Operations Notice
+          ● Apex Staff Portal Deliverable Notice
         </span>
         <h1 style="color: #111827; font-size: 20px; font-weight: 800; margin: 12px 0 4px 0;">
           Apex Architecture & Engineering Studio
@@ -690,7 +710,7 @@ function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredB
         Hello <strong>${recipientName}</strong>,
       </p>
       <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
-        A milestone deliverable has been logged into the company Google Sheet master and assigned to you:
+        A new technical milestone deliverable has been assigned to you. You can review specifications, check off subtasks, and submit progress directly on your dedicated <strong>Staff Deliverables Portal</strong>:
       </p>
 
       <!-- Deliverable Details Card -->
@@ -716,21 +736,24 @@ function buildHtmlEmail(recipientName, taskTitle, summary, eventType, triggeredB
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div style="margin: 24px 0; text-align: left;">
-        <a href="${sheetUrl}" 
-           style="display: inline-block; background-color: #065F46; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 12px 24px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          View Deliverable in Google Sheet ↗
+      <!-- Action Button: Opens Website Staff Page -->
+      <div style="margin: 24px 0 16px 0; text-align: left;">
+        <a href="${staffPortalUrl}" 
+           style="display: inline-block; background-color: #065F46; color: #FFFFFF; font-size: 14px; font-weight: 700; padding: 13px 26px; border-radius: 9px; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); letter-spacing: 0.02em;">
+          👉 View Deliverable on Staff Portal ↗
         </a>
       </div>
+      <p style="margin: 0 0 16px 0; font-size: 12px; color: #4B5563; line-height: 1.5;">
+        Clicking above takes you directly to your personalized tasks dashboard on the website (filtered to your assigned tasks only).
+      </p>
 
       <!-- Footer -->
       <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #9CA3AF; line-height: 1.5;">
         <p style="margin: 0;">
-          This notification was automatically dispatched by your company's Google Sheet backend Operations Engine.
+          Direct Portal URL: <a href="${staffPortalUrl}" style="color: #065F46; text-decoration: underline;">${staffPortalUrl}</a>
         </p>
         <p style="margin: 4px 0 0 0;">
-          Spreadsheet: <a href="${sheetUrl}" style="color: #065F46; text-decoration: underline;">Apex Architecture & Engineering - Operations Hub</a>
+          Apex Construction Systems • 2026 Technical Operations Engine
         </p>
       </div>
 

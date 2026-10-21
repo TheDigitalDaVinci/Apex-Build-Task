@@ -365,7 +365,13 @@ export function StaffLoginPage({
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               <span>Real-Time Google Sheet Sync Active</span>
             </span>
-            <span className="font-mono text-[10px]">v2.1</span>
+            <a
+              href="/staff"
+              className="font-semibold text-emerald-700 hover:text-emerald-900 transition-colors flex items-center gap-1"
+            >
+              <span>Dedicated Staff Portal</span>
+              <ArrowRight className="w-3 h-3" />
+            </a>
           </div>
 
         </div>

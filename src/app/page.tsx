@@ -132,6 +132,7 @@ export default function Home() {
         'apex_user_session',
         JSON.stringify({ role: 'staff', memberId: member.id, email: member.email })
       );
+      localStorage.setItem('apex_staff_portal_email', member.email);
     } catch (e) {}
     addToast({
       type: 'sheet',
