@@ -168,6 +168,10 @@ function StaffPortalContent() {
         setCurrentMember(found);
         if (typeof window !== 'undefined') {
           localStorage.setItem('apex_staff_portal_email', found.email);
+          localStorage.setItem(
+            'apex_user_session',
+            JSON.stringify({ role: 'staff', memberId: found.id, email: found.email })
+          );
         }
         setAuthSubmitting(false);
         addToast({
@@ -187,6 +191,7 @@ function StaffPortalContent() {
     setEmailInput('');
     if (typeof window !== 'undefined') {
       localStorage.removeItem('apex_staff_portal_email');
+      localStorage.removeItem('apex_user_session');
     }
     // Clean URL query parameters
     router.replace('/staff');

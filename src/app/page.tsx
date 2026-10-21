@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Task, TeamMember, Project, TaskStatus, GoogleSheetsConfig, UserSession } from '@/lib/types';
 import { NotionSidebar, ActiveView } from '@/components/NotionSidebar';
 import { NotionHeader } from '@/components/NotionHeader';
@@ -16,6 +17,7 @@ import { StaffLoginPage } from '@/components/StaffLoginPage';
 import { ToastContainer, ToastMessage } from '@/components/Toast';
 
 export default function Home() {
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
   const [authInitialized, setAuthInitialized] = useState(false);
 
@@ -108,7 +110,11 @@ export default function Home() {
           } else if (parsed.role === 'staff' && parsed.email) {
             const matched = members.find((m) => m.email.trim().toLowerCase() === parsed.email.trim().toLowerCase());
             if (matched) {
-              setCurrentUser({ role: 'staff', member: matched });
+              // Direct staff user to their dedicated portal immediately
+              if (typeof window !== 'undefined') {
+                window.location.href = `/staff?email=${encodeURIComponent(matched.email)}`;
+              }
+              return;
             } else {
               localStorage.removeItem('apex_user_session');
               setCurrentUser(null);
@@ -125,8 +131,6 @@ export default function Home() {
 
   // Auth Action Handlers
   const handleLoginStaff = (member: TeamMember) => {
-    const session: UserSession = { role: 'staff', member };
-    setCurrentUser(session);
     try {
       localStorage.setItem(
         'apex_user_session',
@@ -134,11 +138,8 @@ export default function Home() {
       );
       localStorage.setItem('apex_staff_portal_email', member.email);
     } catch (e) {}
-    addToast({
-      type: 'sheet',
-      title: `Welcome, ${member.name}!`,
-      description: `Logged in to Staff Workspace. Displaying deliverables assigned to you.`,
-    });
+    // Whenever a staff member logs in, redirect them directly to the dedicated staff portal
+    router.push(`/staff?email=${encodeURIComponent(member.email)}`);
   };
 
   const handleLoginAdmin = (password?: string) => {
@@ -504,6 +505,19 @@ export default function Home() {
     return projects.find((p) => p.id === selectedProjectId);
   }, [projects, selectedProjectId]);
 
+  // Guard: If user is logged in as staff, immediately route them to their dedicated staff portal
+  if (currentUser?.role === 'staff') {
+    if (typeof window !== 'undefined') {
+      window.location.href = `/staff?email=${encodeURIComponent(currentUser.member.email)}`;
+    }
+    return (
+      <div className="min-h-screen bg-[#FBFBFA] flex flex-col items-center justify-center text-gray-500 font-sans">
+        <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs font-semibold tracking-wide uppercase text-gray-600">Opening your dedicated Staff Portal...</p>
+      </div>
+    );
+  }
+
   // If not logged in, show Staff Login Page (or loading splash while checking session)
   if (!currentUser) {
     if (!authInitialized) {
@@ -548,7 +562,7 @@ export default function Home() {
         onOpenSheetHub={handleOpenSheetHub}
         onOpenMembers={() => setIsMembersOpen(true)}
         onOpenNewTaskModal={() => {
-          setPreselectedMemberId(currentUser?.role === 'staff' ? currentUser.member.id : undefined);
+          setPreselectedMemberId(undefined);
           setIsNewTaskModalOpen(true);
         }}
         onDeleteProject={handleDeleteProject}
@@ -578,7 +592,7 @@ export default function Home() {
           currentUser={currentUser}
           onLogout={handleLogout}
           onOpenNewTaskModal={() => {
-            setPreselectedMemberId(currentUser?.role === 'staff' ? currentUser.member.id : undefined);
+            setPreselectedMemberId(undefined);
             setIsNewTaskModalOpen(true);
           }}
           onOpenSheetHub={handleOpenSheetHub}
@@ -610,7 +624,7 @@ export default function Home() {
               currentUser={currentUser}
               onSelectTask={(task) => setSelectedTask(task)}
               onOpenNewTaskModal={() => {
-                setPreselectedMemberId(currentUser?.role === 'staff' ? currentUser.member.id : undefined);
+                setPreselectedMemberId(undefined);
                 setIsNewTaskModalOpen(true);
               }}
               onResendEmail={handleResendAlert}
@@ -638,7 +652,7 @@ export default function Home() {
               currentUser={currentUser}
               onSelectTask={(task) => setSelectedTask(task)}
               onOpenNewTaskModal={() => {
-                setPreselectedMemberId(currentUser?.role === 'staff' ? currentUser.member.id : undefined);
+                setPreselectedMemberId(undefined);
                 setIsNewTaskModalOpen(true);
               }}
               onResendEmail={handleResendAlert}
@@ -660,7 +674,7 @@ export default function Home() {
         members={members}
         projects={projects}
         activeProjectId={selectedProjectId !== 'all' ? selectedProjectId : undefined}
-        preselectedMemberId={preselectedMemberId || (currentUser?.role === 'staff' ? currentUser.member.id : undefined)}
+        preselectedMemberId={preselectedMemberId}
         onCreateTask={handleCreateTask}
       />
 
